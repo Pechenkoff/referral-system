@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS referrals (
+    id SERIAL PRIMARY KEY,
+    referrer_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    referee_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE
+);

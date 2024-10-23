@@ -2,25 +2,14 @@ package repositories
 
 import (
 	"database/sql"
-	"errors"
 	"referral-system/internal/entities"
-	"time"
 )
 
-// ReferralCode - структура для реферального кода
-type ReferralCode struct {
-	ID        int       `json:"id"`
-	UserID    int       `json:"user_id"` // Ссылка на пользователя, который создал код
-	Code      string    `json:"code"`
-	ExpiresAt time.Time `json:"expires_at"` // Срок истечения кода
-	CreatedAt time.Time `json:"created_at"`
-}
-
-// ReferralRepository интерфейс для работы с реферальными кодами
-type ReferralRepository interface {
-	CreateReferralCode(referral *entities.ReferralCode) error
-	GetReferralCodeByUserID(userID int) (*entities.ReferralCode, error)
-	DeleteReferralCodeByUserID(userID int) error
+// Referral - структура для связи между реферером и рефералом
+type Referral struct {
+	ID         int `json:"id"`
+	ReferrerID int `json:"referrer_id"` // ID реферера
+	RefereeID  int `json:"referee_id"`  // ID реферала
 }
 
 // PostgresReferralRepository реализация ReferralRepository для PostgreSQL
@@ -28,33 +17,41 @@ type PostgresReferralRepository struct {
 	db *sql.DB
 }
 
+type ReferralRepository interface {
+	CreateReferralLink(referrerID, refereeID int) error
+	GetReferralsByReferrerID(referrerID int) ([]*entities.Referral, error)
+}
+
 // NewPostgresReferralRepository создает новый PostgresReferralRepository
 func NewPostgresReferralRepository(db *sql.DB) ReferralRepository {
 	return &PostgresReferralRepository{db: db}
 }
 
-// CreateReferralCode создает новый реферальный код
-func (r *PostgresReferralRepository) CreateReferralCode(referral *entities.ReferralCode) error {
-	query := `INSERT INTO referral_codes (user_id, code, expires_at, created_at) 
-              VALUES ($1, $2, $3, $4) RETURNING id`
-	err := r.db.QueryRow(query, referral.UserID, referral.Code, referral.ExpiresAt, time.Now()).Scan(&referral.ID)
+// CreateReferralLink создает связь между реферером и рефералом
+func (r *PostgresReferralRepository) CreateReferralLink(referrerID, refereeID int) error {
+	query := `INSERT INTO referrals (referrer_id, referee_id) VALUES ($1, $2)`
+	_, err := r.db.Exec(query, referrerID, refereeID)
 	return err
 }
 
-// GetReferralCodeByUserID получает реферальный код по ID пользователя
-func (r *PostgresReferralRepository) GetReferralCodeByUserID(userID int) (*entities.ReferralCode, error) {
-	referral := &entities.ReferralCode{}
-	query := `SELECT id, user_id, code, expires_at FROM referral_codes WHERE user_id=$1`
-	err := r.db.QueryRow(query, userID).Scan(&referral.ID, &referral.UserID, &referral.Code, &referral.ExpiresAt)
-	if err == sql.ErrNoRows {
-		return nil, errors.New("referral code not found")
+// GetReferralsByReferrerID получает список рефералов по ID реферера
+func (r *PostgresReferralRepository) GetReferralsByReferrerID(referrerID int) ([]*entities.Referral, error) {
+	query := `SELECT id, referrer_id, referee_id FROM referrals WHERE referrer_id = $1`
+	rows, err := r.db.Query(query, referrerID)
+	if err != nil {
+		return nil, err
 	}
-	return referral, err
-}
+	defer rows.Close()
 
-// DeleteReferralCodeByUserID удаляет реферальный код по ID пользователя
-func (r *PostgresReferralRepository) DeleteReferralCodeByUserID(userID int) error {
-	query := `DELETE FROM referral_codes WHERE user_id=$1`
-	_, err := r.db.Exec(query, userID)
-	return err
+	var referrals []*entities.Referral
+	for rows.Next() {
+		referral := &entities.Referral{}
+		err := rows.Scan(&referral.ID, &referral.ReferrerID, &referral.RefereeID)
+		if err != nil {
+			return nil, err
+		}
+		referrals = append(referrals, referral)
+	}
+
+	return referrals, nil
 }

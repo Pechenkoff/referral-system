@@ -9,3 +9,10 @@ type ReferralCode struct {
 	Code      string    `json:"code"`
 	ExpiresAt time.Time `json:"expires_at"` // Срок истечения кода
 }
+
+// Referral - структура для связи между реферером и рефералом
+type Referral struct {
+	ID         int `json:"id"`
+	ReferrerID int `json:"referrer_id"` // ID реферера
+	RefereeID  int `json:"referee_id"`  // ID реферала
+}
