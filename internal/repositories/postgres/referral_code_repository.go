@@ -1,20 +1,23 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"referral-system/internal/entities"
 	"referral-system/internal/repositories"
 	"time"
+
+	"github.com/jackc/pgx/v4"
 )
 
 // PostgresReferralCodeRepository реализация ReferralRepository для PostgreSQL
 type PostgresReferralCodeRepository struct {
-	db *sql.DB
+	db *pgx.Conn
 }
 
 // NewPostgresReferralCodeRepository создает новый PostgresReferralRepository
-func NewPostgresReferralCodeRepository(db *sql.DB) repositories.ReferralCodeRepository {
+func NewPostgresReferralCodeRepository(db *pgx.Conn) repositories.ReferralCodeRepository {
 	return &PostgresReferralCodeRepository{db: db}
 }
 
@@ -22,7 +25,7 @@ func NewPostgresReferralCodeRepository(db *sql.DB) repositories.ReferralCodeRepo
 func (r *PostgresReferralCodeRepository) CreateReferralCode(referral *entities.ReferralCode) error {
 	query := `INSERT INTO referral_codes (user_id, code, expires_at, created_at) 
               VALUES ($1, $2, $3, $4) RETURNING id`
-	err := r.db.QueryRow(query, referral.UserID, referral.Code, referral.ExpiresAt, time.Now()).Scan(&referral.ID)
+	err := r.db.QueryRow(context.Background(), query, referral.UserID, referral.Code, referral.ExpiresAt, time.Now()).Scan(&referral.ID)
 	return err
 }
 
@@ -30,7 +33,7 @@ func (r *PostgresReferralCodeRepository) CreateReferralCode(referral *entities.R
 func (r *PostgresReferralCodeRepository) GetReferralCodeByUserID(userID int) (*entities.ReferralCode, error) {
 	referral := &entities.ReferralCode{}
 	query := `SELECT id, user_id, code, expires_at FROM referral_codes WHERE user_id=$1`
-	err := r.db.QueryRow(query, userID).Scan(&referral.ID, &referral.UserID, &referral.Code, &referral.ExpiresAt)
+	err := r.db.QueryRow(context.Background(), query, userID).Scan(&referral.ID, &referral.UserID, &referral.Code, &referral.ExpiresAt)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("referral code not found")
 	}
@@ -40,14 +43,14 @@ func (r *PostgresReferralCodeRepository) GetReferralCodeByUserID(userID int) (*e
 // DeleteReferralCodeByUserID удаляет реферальный код по ID пользователя
 func (r *PostgresReferralCodeRepository) DeleteReferralCodeByUserID(userID int) error {
 	query := `DELETE FROM referral_codes WHERE user_id=$1`
-	_, err := r.db.Exec(query, userID)
+	_, err := r.db.Exec(context.Background(), query, userID)
 	return err
 }
 
 func (r *PostgresReferralCodeRepository) GetUserIDByReferralCode(referralCode string) (int, error) {
 	var userID int
 	query := `SELECT user_id WHERE code=$1`
-	err := r.db.QueryRow(query, referralCode).Scan(&userID)
+	err := r.db.QueryRow(context.Background(), query, referralCode).Scan(&userID)
 	if err == sql.ErrNoRows {
 		return 0, errors.New("user not found")
 	}

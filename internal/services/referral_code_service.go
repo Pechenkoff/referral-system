@@ -80,7 +80,7 @@ func (s *referralService) RegisterWithReferralCode(referralCode string, name, em
 	}
 
 	// Создаем нового пользователя
-	authSvc := NewAuthService(s.userRepo)
+	authSvc := NewAuthService(s.userRepo, "")
 	user, err := authSvc.RegisterUser(name, email, password)
 	if err != nil {
 		return nil, err

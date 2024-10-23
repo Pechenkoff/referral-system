@@ -1,0 +1,117 @@
+package main
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"referral-system/internal/config"
+	"referral-system/internal/controllers"
+	"referral-system/internal/infrastructure/logger/handlers/slogpretty"
+	"referral-system/internal/infrastructure/logger/sl"
+	"referral-system/internal/repositories/postgres"
+	"referral-system/internal/routes"
+	"referral-system/internal/services"
+	"syscall"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v4"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+)
+
+// go run ./cmd/server/main.go -config=./config/config.yaml -migration=file://./db/migration
+func main() {
+	// считываем флаги
+	configPath := flag.String("config", "config.yaml", "Path to the configuration file")
+	migrationPath := flag.String("migration", "file://db/migrations", "Path to the migration directory")
+	flag.Parse()
+
+	// читаем конфигурационный файл
+	cfg := config.MustLoadConfig(*configPath)
+
+	// создаем логгер
+	logger := setupPrettyLog()
+
+	// Подключаемся к базе данных
+	dbConnStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", cfg.Database.User, cfg.Database.Password, cfg.Database.Host, cfg.Database.Port, cfg.Database.DBName)
+	dbConn, err := pgx.Connect(context.Background(), dbConnStr)
+	if err != nil {
+		panic(fmt.Errorf("failed to connect to PostgreSQL: %v", err))
+	}
+
+	// Проводим миграции
+	postgres.MustRunMigration(dbConnStr, *migrationPath)
+
+	// создаем копии репозиториев
+	userRepo := postgres.NewPostgresUserRepository(dbConn)
+	referralCodeRepo := postgres.NewPostgresReferralCodeRepository(dbConn)
+	referralRepo := postgres.NewPostgresReferralRepository(dbConn)
+
+	// создаем копии сервисов
+	authService := services.NewAuthService(userRepo, cfg.JWTSecret)
+	referralService := services.NewReferralService(referralCodeRepo, userRepo, referralRepo)
+
+	// создаем контроллеры
+	authController := controllers.NewAuthController(authService, logger)
+	referralController := controllers.NewReferralController(referralService, logger)
+
+	// создаем копию роутера
+	router := gin.Default()
+	routes.RegisterRoutes(router, authController, referralController, cfg.JWTSecret)
+
+	// подключаем Swagger
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	server := http.Server{
+		Addr:         cfg.Port,
+		Handler:      router,
+		WriteTimeout: time.Duration(cfg.Timeouts.WriteTimeout) * time.Second,
+		ReadTimeout:  time.Duration(cfg.Timeouts.ReadTimeout) * time.Second,
+		IdleTimeout:  time.Duration(cfg.Timeouts.IdleTimeout) * time.Second,
+	}
+
+	// релизуем gracefull отключение сервера
+	errChan := make(chan error, 1)
+
+	go func() {
+		logger.Info("Starting server on", "port", cfg.Port)
+		errChan <- server.ListenAndServe()
+	}()
+
+	sigint := make(chan os.Signal, 1)
+	signal.Notify(sigint, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+
+	select {
+	case sig := <-sigint:
+		logger.Debug("Caught signal", "signal", sig)
+	case err := <-errChan:
+		logger.Error("error listen and serve", sl.Err(err))
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		logger.Error("Server forced to shutdown", sl.Err(err))
+	}
+
+	logger.Info("Server stopped gracefully")
+
+}
+
+func setupPrettyLog() *slog.Logger {
+	opts := slogpretty.PrettyHandlerOptions{
+		SlogOpts: &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		},
+	}
+
+	handler := opts.NewPrettyHandler(os.Stdout)
+
+	return slog.New(handler)
+}
