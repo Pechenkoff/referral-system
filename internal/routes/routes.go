@@ -37,7 +37,7 @@ func RegisterRoutes(router *gin.Engine, authController *controllers.AuthControll
 	}
 
 	router.NoRoute(func(c *gin.Context) {
-		c.JSON(http.StatusNotFound, gin.H{"message": "not found"})
+		c.JSON(http.StatusMethodNotAllowed, gin.H{"message": "not found"})
 	})
 
 	router.NoMethod(func(c *gin.Context) {

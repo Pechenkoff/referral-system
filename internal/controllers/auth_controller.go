@@ -19,7 +19,17 @@ func NewAuthController(authService services.AuthService, logger *slog.Logger) *A
 	return &AuthController{authService: authService, logger: logger}
 }
 
-// Login обрабатывает вход пользователя
+// Login godoc
+// @Summary Вход пользователя
+// @Description Вход пользователя с получением JWT токена
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param email body string true "Email пользователя"
+// @Param password body string true "Пароль"
+// @Success 200 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /auth/login [post]
 func (ac *AuthController) Login(c *gin.Context) {
 	var req struct {
 		Email    string `json:"email" binding:"required"`
@@ -34,8 +44,8 @@ func (ac *AuthController) Login(c *gin.Context) {
 
 	user, token, err := ac.authService.LoginUser(req.Email, req.Password)
 	if err != nil {
-		ac.logger.Warn("failed to login", sl.Err(err))
-		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		ac.logger.Error("failed to login", sl.Err(err))
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -45,7 +55,18 @@ func (ac *AuthController) Login(c *gin.Context) {
 	})
 }
 
-// Register обрабатывает регистрацию нового пользователя
+// Register godoc
+// @Summary Регистрация нового пользователя
+// @Description Регистрация нового пользователя
+// @Tags auth
+// @Accept json
+// @Produce json
+// @Param name body string true "Имя пользователя"
+// @Param email body string true "Email пользователя"
+// @Param password body string true "Пароль"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Router /auth/register [post]
 func (ac *AuthController) Register(c *gin.Context) {
 	var req struct {
 		Name     string `json:"name" binding:"required"`
@@ -66,7 +87,7 @@ func (ac *AuthController) Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
+	c.JSON(http.StatusCreated, gin.H{
 		"user": user,
 	})
 }

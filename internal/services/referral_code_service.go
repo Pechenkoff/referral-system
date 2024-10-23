@@ -68,15 +68,29 @@ func (s *referralService) DeleteReferralCode(userID int) error {
 
 // GetReferralCodeByUserID возвращает реферальный код по ID пользователя
 func (s *referralService) GetReferralCodeByUserID(userID int) (*entities.ReferralCode, error) {
-	return s.referralCodeRepo.GetReferralCodeByUserID(userID)
+	referral, err := s.referralCodeRepo.GetReferralCodeByUserID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Проверим, не истек ли срок действия кода
+	if referral.ExpiresAt.Before(time.Now()) {
+		return nil, errors.New("referral code has expired")
+	}
+
+	return referral, nil
 }
 
 // RegisterWithReferralCode регистрирует нового пользователя по реферальному коду
 func (s *referralService) RegisterWithReferralCode(referralCode string, name, email, password string) (*entities.User, error) {
 	// Найдем реферальный код
-	userID, err := s.referralCodeRepo.GetUserIDByReferralCode(referralCode)
+	referral, err := s.referralCodeRepo.GetReferralByReferralCode(referralCode)
 	if err != nil {
 		return nil, errors.New("invalid referral code")
+	}
+
+	if referral.ExpiresAt.Before(time.Now()) {
+		return nil, errors.New("referral code has expired")
 	}
 
 	// Создаем нового пользователя
@@ -87,7 +101,7 @@ func (s *referralService) RegisterWithReferralCode(referralCode string, name, em
 	}
 
 	// Привязываем реферала к рефереру
-	err = s.referralRepo.CreateReferralLink(userID, user.ID)
+	err = s.referralRepo.CreateReferralLink(referral.UserID, user.ID)
 	if err != nil {
 		return nil, err
 	}

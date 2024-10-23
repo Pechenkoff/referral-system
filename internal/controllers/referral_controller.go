@@ -20,7 +20,19 @@ func NewReferralController(referralService services.ReferralService, logger *slo
 	return &ReferralController{referralService: referralService, logger: logger}
 }
 
-// CreateReferralCode обрабатывает создание нового реферального кода
+// CreateReferralCode godoc
+// @Summary Создание реферального кода
+// @Description Создание нового реферального кода для пользователя
+// @Tags referral
+// @Accept json
+// @Produce json
+// @Param code body string true "Реферальный код"
+// @Param expires_in body int64 true "Время жизни в секундах"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /referrals [post]
+// @Security ApiKeyAuth
 func (rc *ReferralController) CreateReferralCode(c *gin.Context) {
 	var req struct {
 		Code      string `json:"code" binding:"required"`
@@ -56,7 +68,15 @@ func (rc *ReferralController) CreateReferralCode(c *gin.Context) {
 	})
 }
 
-// DeleteReferralCode обрабатывает удаление реферального кода
+// DeleteReferralCode godoc
+// @Summary Удаление реферального кода
+// @Description Удаление активного реферального кода для пользователя
+// @Tags referral
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /referrals [delete]
+// @Security ApiKeyAuth
 func (rc *ReferralController) DeleteReferralCode(c *gin.Context) {
 	// Получаем user_id из контекста
 	userID, exists := c.Get("user_id")
@@ -79,7 +99,16 @@ func (rc *ReferralController) DeleteReferralCode(c *gin.Context) {
 	})
 }
 
-// GetReferralsByUserID возвращает список рефералов по ID реферера
+// GetReferralsByUserID godoc
+// @Summary Получение списка рефералов
+// @Description Возвращает список рефералов, зарегистрированных по коду пользователя
+// @Tags referral
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Router /referrals/list [get]
+// @Security ApiKeyAuth
 func (rc *ReferralController) GetReferralsByUserID(c *gin.Context) {
 	// Получаем user_id из контекста
 	userID, exists := c.Get("user_id")

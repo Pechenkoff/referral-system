@@ -1,0 +1,185 @@
+basePath: /
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a sample server for a referral system.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Swagger Example API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Вход пользователя с получением JWT токена
+      parameters:
+      - description: Email пользователя
+        in: body
+        name: email
+        required: true
+        schema:
+          type: string
+      - description: Пароль
+        in: body
+        name: password
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Вход пользователя
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Регистрация нового пользователя
+      parameters:
+      - description: Имя пользователя
+        in: body
+        name: name
+        required: true
+        schema:
+          type: string
+      - description: Email пользователя
+        in: body
+        name: email
+        required: true
+        schema:
+          type: string
+      - description: Пароль
+        in: body
+        name: password
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Регистрация нового пользователя
+      tags:
+      - auth
+  /referrals:
+    delete:
+      description: Удаление активного реферального кода для пользователя
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Удаление реферального кода
+      tags:
+      - referral
+    post:
+      consumes:
+      - application/json
+      description: Создание нового реферального кода для пользователя
+      parameters:
+      - description: Реферальный код
+        in: body
+        name: code
+        required: true
+        schema:
+          type: string
+      - description: Время жизни в секундах
+        in: body
+        name: expires_in
+        required: true
+        schema:
+          type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Создание реферального кода
+      tags:
+      - referral
+  /referrals/list:
+    get:
+      description: Возвращает список рефералов, зарегистрированных по коду пользователя
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Получение списка рефералов
+      tags:
+      - referral
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

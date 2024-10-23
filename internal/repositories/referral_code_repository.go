@@ -9,5 +9,5 @@ type ReferralCodeRepository interface {
 	CreateReferralCode(referral *entities.ReferralCode) error
 	GetReferralCodeByUserID(userID int) (*entities.ReferralCode, error)
 	DeleteReferralCodeByUserID(userID int) error
-	GetUserIDByReferralCode(referralCode string) (int, error)
+	GetReferralByReferralCode(referralCode string) (*entities.ReferralCode, error)
 }
