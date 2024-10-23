@@ -43,3 +43,14 @@ func (r *PostgresReferralCodeRepository) DeleteReferralCodeByUserID(userID int) 
 	_, err := r.db.Exec(query, userID)
 	return err
 }
+
+func (r *PostgresReferralCodeRepository) GetUserIDByReferralCode(referralCode string) (int, error) {
+	var userID int
+	query := `SELECT user_id WHERE code=$1`
+	err := r.db.QueryRow(query, referralCode).Scan(&userID)
+	if err == sql.ErrNoRows {
+		return 0, errors.New("user not found")
+	}
+
+	return userID, err
+}
