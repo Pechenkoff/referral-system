@@ -18,7 +18,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: go_server
+    container_name: referral-system
     ports:
       - "8080:8080"
     depends_on:
