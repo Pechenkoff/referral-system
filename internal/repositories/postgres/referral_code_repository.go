@@ -8,16 +8,16 @@ import (
 	"referral-system/internal/repositories"
 	"time"
 
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 // PostgresReferralCodeRepository реализация ReferralRepository для PostgreSQL
 type PostgresReferralCodeRepository struct {
-	db *pgx.Conn
+	db *pgxpool.Pool
 }
 
 // NewPostgresReferralCodeRepository создает новый PostgresReferralRepository
-func NewPostgresReferralCodeRepository(db *pgx.Conn) repositories.ReferralCodeRepository {
+func NewPostgresReferralCodeRepository(db *pgxpool.Pool) repositories.ReferralCodeRepository {
 	return &PostgresReferralCodeRepository{db: db}
 }
 

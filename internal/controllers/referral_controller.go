@@ -35,7 +35,7 @@ func NewReferralController(referralService services.ReferralService, logger *slo
 // @Security ApiKeyAuth
 func (rc *ReferralController) CreateReferralCode(c *gin.Context) {
 	var req struct {
-		Code      string `json:"code" binding:"required"`
+		Email     string `json:"email" binding:"required"`
 		ExpiresIn int64  `json:"expires_in" binding:"required"` // Время жизни в секундах
 	}
 
@@ -56,7 +56,7 @@ func (rc *ReferralController) CreateReferralCode(c *gin.Context) {
 	expiresIn := time.Duration(req.ExpiresIn) * time.Second
 
 	// Создаем реферальный код
-	referral, err := rc.referralService.CreateReferralCode(int(userID.(float64)), req.Code, expiresIn)
+	referral, err := rc.referralService.CreateReferralCode(int(userID.(float64)), expiresIn)
 	if err != nil {
 		rc.logger.Error("failed to create referral code", sl.Err(err))
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

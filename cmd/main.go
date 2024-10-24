@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -56,10 +56,19 @@ func main() {
 
 	// Подключаемся к базе данных
 	dbConnStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", cfg.Database.User, cfg.Database.Password, cfg.Database.Host, cfg.Database.Port, cfg.Database.DBName)
-	dbConn, err := pgx.Connect(context.Background(), dbConnStr)
+	poolConfig, err := pgxpool.ParseConfig(dbConnStr)
 	if err != nil {
-		panic(fmt.Errorf("failed to connect to PostgreSQL: %v", err))
+		panic(fmt.Errorf("unable to parse connection string: %v\n", err))
 	}
+
+	poolConfig.MaxConns = 10
+	poolConfig.MaxConnLifetime = time.Hour
+
+	dbConn, err := pgxpool.ConnectConfig(context.Background(), poolConfig)
+	if err != nil {
+		panic(fmt.Errorf("Unable to connect to database: %v\n", err))
+	}
+	defer dbConn.Close()
 
 	// Проводим миграции
 	postgres.MustRunMigration(dbConnStr, *migrationPath)

@@ -8,16 +8,16 @@ import (
 	"referral-system/internal/repositories"
 	"time"
 
-	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 )
 
 // PostgresUserRepository реализация UserRepository для PostgreSQL
 type PostgresUserRepository struct {
-	db *pgx.Conn
+	db *pgxpool.Pool
 }
 
 // NewPostgresUserRepository создает новый PostgresUserRepository
-func NewPostgresUserRepository(db *pgx.Conn) repositories.UserRepository {
+func NewPostgresUserRepository(db *pgxpool.Pool) repositories.UserRepository {
 	return &PostgresUserRepository{db: db}
 }
 

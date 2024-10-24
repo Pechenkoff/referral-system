@@ -5,6 +5,8 @@ import (
 	"referral-system/internal/entities"
 	"referral-system/internal/repositories"
 	"time"
+
+	"golang.org/x/exp/rand"
 )
 
 // referralService реализация ReferralService
@@ -16,7 +18,7 @@ type referralService struct {
 
 // ReferralService интерфейс для управления реферальными кодами
 type ReferralService interface {
-	CreateReferralCode(userID int, code string, expiresIn time.Duration) (*entities.ReferralCode, error)
+	CreateReferralCode(userID int, expiresIn time.Duration) (*entities.ReferralCode, error)
 	DeleteReferralCode(userID int) error
 	GetReferralCodeByUserID(userID int) (*entities.ReferralCode, error)
 	RegisterWithReferralCode(referralCode string, name, email, password string) (*entities.User, error)
@@ -34,8 +36,20 @@ func NewReferralService(referralCodeRepo repositories.ReferralCodeRepository,
 	}
 }
 
+const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+// GenerateReferralCode генерирует случайную строку (реферальный код) заданной длины
+func GenerateReferralCode(length int) string {
+	var seededRand *rand.Rand = rand.New(rand.NewSource(uint64(time.Now().UnixNano())))
+	code := make([]byte, length)
+	for i := range code {
+		code[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return string(code)
+}
+
 // CreateReferralCode создает реферальный код для пользователя
-func (s *referralService) CreateReferralCode(userID int, code string, expiresIn time.Duration) (*entities.ReferralCode, error) {
+func (s *referralService) CreateReferralCode(userID int, expiresIn time.Duration) (*entities.ReferralCode, error) {
 	// Проверим, есть ли уже активный код
 	existingCode, err := s.referralCodeRepo.GetReferralCodeByUserID(userID)
 	if err != nil {
@@ -45,6 +59,8 @@ func (s *referralService) CreateReferralCode(userID int, code string, expiresIn 
 	if existingCode != nil {
 		return nil, errors.New("referral code already exists for user")
 	}
+
+	code := GenerateReferralCode(10)
 
 	// Создаем новый реферальный код
 	expiresAt := time.Now().Add(expiresIn)
