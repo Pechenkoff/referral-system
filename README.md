@@ -37,19 +37,15 @@
    git clone https://github.com/your-username/referral-system.git
    cd referral-system
    ```
-2. Установите зависимости:
-   ```bash
-   go mod tidy
-   ```
-3. Создайте образ сервиса
+2. Создайте образ сервиса
    ```bash
    docker build -t referral-system .
    ```
-4. Запустите сервис
+3. Запустите сервис
    ```bash
    docker compose up
    ```
-5. Откройте браузер и перейдите по адресу:
+4. Откройте браузер и перейдите по адресу:
    ```bash
    http://localhost:8080/swagger/index.html
    ```
